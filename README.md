@@ -11,7 +11,7 @@ nigopdf は **pdfcpu の中から「PDF の結合」と「PDF の分割」だけ
 - 結合 → `nigopdf merge`
 - 分割 → `nigopdf split`
 
-覚えることはこれだけ。余計なオプションや設定は一切ありません。
+
 
 ## インストール
 
