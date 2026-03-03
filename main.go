@@ -1,6 +1,6 @@
 package main
 
-import "github.com/wadoyoka/pdf-join-go/cmd"
+import "github.com/wadoyoka/nigopdf/cmd"
 
 func main() {
 	cmd.Execute()

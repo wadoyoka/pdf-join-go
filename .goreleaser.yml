@@ -1,7 +1,9 @@
 version: 2
 
 builds:
-  - binary: pdf-join
+  - binary: nigopdf
+    ldflags:
+      - -s -w -X github.com/wadoyoka/nigopdf/cmd.version={{.Version}}
     goos:
       - darwin
       - linux
@@ -10,12 +12,12 @@ builds:
       - arm64
 
 homebrew_casks:
-  - name: pdf-join
+  - name: nigopdf
     binaries:
-      - pdf-join
+      - nigopdf
     repository:
       owner: wadoyoka
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    homepage: "https://github.com/wadoyoka/pdf-join-go"
-    description: "Merge PDF files in a directory"
+    homepage: "https://github.com/wadoyoka/nigopdf"
+    description: "A PDF toolkit - merge and split PDF files"

@@ -16,7 +16,7 @@ func TestCollectPDFs_SortedOrder(t *testing.T) {
 		}
 	}
 
-	files, err := CollectPDFs(dir)
+	files, err := CollectPDFs(dir, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func TestCollectPDFs_ExcludesNonPDF(t *testing.T) {
 		}
 	}
 
-	files, err := CollectPDFs(dir)
+	files, err := CollectPDFs(dir, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -66,7 +66,7 @@ func TestCollectPDFs_ExcludesDirectories(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	files, err := CollectPDFs(dir)
+	files, err := CollectPDFs(dir, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,62 @@ func TestCollectPDFs_ExcludesDirectories(t *testing.T) {
 }
 
 func TestCollectPDFs_NonExistentDir(t *testing.T) {
-	_, err := CollectPDFs("/nonexistent/dir")
+	_, err := CollectPDFs("/nonexistent/dir", false)
+	if err == nil {
+		t.Fatal("expected error for non-existent directory")
+	}
+}
+
+func TestCollectPDFs_Recursive(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create nested structure:
+	// dir/a.pdf
+	// dir/sub1/b.pdf
+	// dir/sub1/sub2/c.pdf
+	// dir/other.txt  (should be excluded)
+	if err := os.MkdirAll(filepath.Join(dir, "sub1", "sub2"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	for _, rel := range []string{"a.pdf", "sub1/b.pdf", "sub1/sub2/c.pdf", "other.txt"} {
+		if err := os.WriteFile(filepath.Join(dir, rel), []byte("dummy"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Non-recursive: only top-level
+	flat, err := CollectPDFs(dir, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(flat) != 1 {
+		t.Fatalf("flat: expected 1 file, got %d: %v", len(flat), flat)
+	}
+
+	// Recursive: all PDFs
+	rec, err := CollectPDFs(dir, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rec) != 3 {
+		t.Fatalf("recursive: expected 3 files, got %d: %v", len(rec), rec)
+	}
+
+	// Verify sorted order
+	expected := []string{
+		filepath.Join(dir, "a.pdf"),
+		filepath.Join(dir, "sub1", "b.pdf"),
+		filepath.Join(dir, "sub1", "sub2", "c.pdf"),
+	}
+	for i, f := range rec {
+		if f != expected[i] {
+			t.Errorf("rec[%d] = %s, want %s", i, f, expected[i])
+		}
+	}
+}
+
+func TestCollectPDFs_RecursiveNonExistentDir(t *testing.T) {
+	_, err := CollectPDFs("/nonexistent/dir", true)
 	if err == nil {
 		t.Fatal("expected error for non-existent directory")
 	}

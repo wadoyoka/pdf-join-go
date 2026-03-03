@@ -10,8 +10,20 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 )
 
-// CollectPDFs returns .pdf files in the directory sorted by filename ascending.
-func CollectPDFs(dir string) ([]string, error) {
+func isPDF(name string) bool {
+	return strings.EqualFold(filepath.Ext(name), ".pdf")
+}
+
+// CollectPDFs returns .pdf files in the directory sorted by path ascending.
+// If recursive is true, subdirectories are searched as well.
+func CollectPDFs(dir string, recursive bool) ([]string, error) {
+	if recursive {
+		return collectPDFsRecursive(dir)
+	}
+	return collectPDFsFlat(dir)
+}
+
+func collectPDFsFlat(dir string) ([]string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory %s: %w", dir, err)
@@ -22,9 +34,31 @@ func CollectPDFs(dir string) ([]string, error) {
 		if e.IsDir() {
 			continue
 		}
-		if strings.EqualFold(filepath.Ext(e.Name()), ".pdf") {
+		if isPDF(e.Name()) {
 			files = append(files, filepath.Join(dir, e.Name()))
 		}
+	}
+
+	sort.Strings(files)
+	return files, nil
+}
+
+func collectPDFsRecursive(dir string) ([]string, error) {
+	var files []string
+	err := filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if isPDF(d.Name()) {
+			files = append(files, path)
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to walk directory %s: %w", dir, err)
 	}
 
 	sort.Strings(files)
