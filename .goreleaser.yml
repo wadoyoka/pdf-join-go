@@ -9,15 +9,13 @@ builds:
       - amd64
       - arm64
 
-brews:
-  - repository:
+homebrew_casks:
+  - name: pdf-join
+    binaries:
+      - pdf-join
+    repository:
       owner: wadoyoka
       name: homebrew-tap
-    name: pdf-join
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     homepage: "https://github.com/wadoyoka/pdf-join-go"
     description: "Merge PDF files in a directory"
-    license: "MIT"
-    install: |
-      bin.install "pdf-join"
-    test: |
-      system "#{bin}/pdf-join", "--help"
