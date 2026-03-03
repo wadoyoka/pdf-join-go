@@ -39,17 +39,5 @@ This project is licensed under the [MIT License](LICENSE).
 
 ### Third-Party Licenses
 
-This tool uses the following open-source libraries:
-
-- [pdfcpu](https://github.com/pdfcpu/pdfcpu) - Apache License 2.0
-- [cobra](https://github.com/spf13/cobra) - Apache License 2.0
-- [pflag](https://github.com/spf13/pflag) - BSD-3-Clause
-- [yaml.v2](https://github.com/go-yaml/yaml) - Apache License 2.0
-
-See the [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES/) directory for full license texts.
-
-You can also view license information by running:
-
-```bash
-pdf-join --credits
-```
+See the [THIRD_PARTY_LICENSES](THIRD_PARTY_LICENSES/) directory for full license texts,
+or run `pdf-join --credits`.
