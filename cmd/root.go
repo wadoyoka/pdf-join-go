@@ -1,20 +1,30 @@
 package cmd
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
 
-	"github.com/wadoyoka/pdf-join-go/internal/merger"
 	"github.com/spf13/cobra"
+	"github.com/wadoyoka/pdf-join-go/internal/merger"
 )
 
+//go:embed credits.txt
+var credits string
+
 var output string
+var showCredits bool
 
 var rootCmd = &cobra.Command{
 	Use:   "pdf-join [directory]",
 	Short: "Merge PDF files in a directory",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if showCredits {
+			fmt.Println(credits)
+			return nil
+		}
+
 		dir := "."
 		if len(args) > 0 {
 			dir = args[0]
@@ -36,6 +46,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 	rootCmd.Flags().StringVarP(&output, "output", "o", "merged.pdf", "output file name")
+	rootCmd.Flags().BoolVar(&showCredits, "credits", false, "show third-party license information")
 }
 
 func Execute() {
