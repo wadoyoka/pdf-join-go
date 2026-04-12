@@ -3,3 +3,5 @@ pre-commit:
     update-licenses:
       glob: "go.{mod,sum}"
       run: bash scripts/update-licenses.sh && git add THIRD_PARTY_LICENSES/ CREDITS.txt cmd/credits.txt
+    sanitize-personal-info:
+      run: bash scripts/sanitize-personal-info.sh {staged_files}

@@ -275,3 +275,120 @@ func TestSplitByMaxSize_SmallSize(t *testing.T) {
 		t.Errorf("total pages across parts = %d, want 4", totalPages)
 	}
 }
+
+func TestSplitByPages_Basic(t *testing.T) {
+	dir := t.TempDir()
+	inFile := filepath.Join(dir, "input.pdf")
+	outDir := filepath.Join(dir, "out")
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	createTestPDF(t, inFile, 10)
+
+	files, err := SplitByPages(inFile, outDir, []int{2, 5, 8})
+	if err != nil {
+		t.Fatalf("SplitByPages failed: %v", err)
+	}
+
+	if len(files) != 4 {
+		t.Fatalf("expected 4 files, got %d", len(files))
+	}
+
+	expectedPages := []int{2, 3, 3, 2}
+	for i, f := range files {
+		count, err := api.PageCountFile(f)
+		if err != nil {
+			t.Errorf("failed to read page count for %s: %v", f, err)
+			continue
+		}
+		if count != expectedPages[i] {
+			t.Errorf("part %d has %d pages, want %d", i+1, count, expectedPages[i])
+		}
+	}
+}
+
+func TestSplitByPages_SingleSplit(t *testing.T) {
+	dir := t.TempDir()
+	inFile := filepath.Join(dir, "input.pdf")
+	outDir := filepath.Join(dir, "out")
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	createTestPDF(t, inFile, 6)
+
+	files, err := SplitByPages(inFile, outDir, []int{3})
+	if err != nil {
+		t.Fatalf("SplitByPages failed: %v", err)
+	}
+
+	if len(files) != 2 {
+		t.Fatalf("expected 2 files, got %d", len(files))
+	}
+
+	for i, f := range files {
+		count, err := api.PageCountFile(f)
+		if err != nil {
+			t.Errorf("failed to read page count for %s: %v", f, err)
+			continue
+		}
+		if count != 3 {
+			t.Errorf("part %d has %d pages, want 3", i+1, count)
+		}
+	}
+}
+
+func TestSplitByPages_SplitAtFirst(t *testing.T) {
+	dir := t.TempDir()
+	inFile := filepath.Join(dir, "input.pdf")
+	outDir := filepath.Join(dir, "out")
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+
+	createTestPDF(t, inFile, 5)
+
+	files, err := SplitByPages(inFile, outDir, []int{1})
+	if err != nil {
+		t.Fatalf("SplitByPages failed: %v", err)
+	}
+
+	if len(files) != 2 {
+		t.Fatalf("expected 2 files, got %d", len(files))
+	}
+
+	expectedPages := []int{1, 4}
+	for i, f := range files {
+		count, err := api.PageCountFile(f)
+		if err != nil {
+			t.Errorf("failed to read page count for %s: %v", f, err)
+			continue
+		}
+		if count != expectedPages[i] {
+			t.Errorf("part %d has %d pages, want %d", i+1, count, expectedPages[i])
+		}
+	}
+}
+
+func TestSplitByPages_OutOfRange(t *testing.T) {
+	dir := t.TempDir()
+	inFile := filepath.Join(dir, "input.pdf")
+	createTestPDF(t, inFile, 5)
+
+	_, err := SplitByPages(inFile, dir, []int{6})
+	if err == nil {
+		t.Fatal("expected error for out-of-range split point")
+	}
+}
+
+func TestSplitByPages_AtLastPage(t *testing.T) {
+	dir := t.TempDir()
+	inFile := filepath.Join(dir, "input.pdf")
+	createTestPDF(t, inFile, 5)
+
+	_, err := SplitByPages(inFile, dir, []int{5})
+	if err == nil {
+		t.Fatal("expected error for split point equal to total pages")
+	}
+}

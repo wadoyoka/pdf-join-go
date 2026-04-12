@@ -181,6 +181,64 @@ func SplitByMaxSize(inFile, outDir string, maxBytes int64) ([]string, error) {
 	return outFiles, nil
 }
 
+// SplitByPages splits a PDF at the given page boundaries.
+// Each split point indicates the last page of a segment.
+// For example, with a 10-page PDF and splitPoints=[2,5,8], the result is:
+// pages 1-2, pages 3-5, pages 6-8, pages 9-10.
+func SplitByPages(inFile, outDir string, splitPoints []int) ([]string, error) {
+	totalPages, err := api.PageCountFile(inFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get page count: %w", err)
+	}
+
+	for _, p := range splitPoints {
+		if p < 1 || p >= totalPages {
+			return nil, fmt.Errorf("split point %d is out of range (1-%d)", p, totalPages-1)
+		}
+	}
+
+	// Build boundaries: [0, splitPoints..., totalPages]
+	boundaries := make([]int, 0, len(splitPoints)+2)
+	boundaries = append(boundaries, 0)
+	boundaries = append(boundaries, splitPoints...)
+	boundaries = append(boundaries, totalPages)
+
+	f, err := os.Open(inFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open input file: %w", err)
+	}
+	defer f.Close()
+
+	basename := strings.TrimSuffix(filepath.Base(inFile), filepath.Ext(inFile))
+	var outFiles []string
+
+	for i := 0; i < len(boundaries)-1; i++ {
+		startPage := boundaries[i] + 1
+		endPage := boundaries[i+1]
+
+		pages := api.PagesForPageRange(startPage, endPage)
+
+		ctx, err := readContext(f)
+		if err != nil {
+			return nil, err
+		}
+
+		extracted, err := pdfcpu.ExtractPages(ctx, pages, false)
+		if err != nil {
+			return nil, fmt.Errorf("failed to extract pages %d-%d: %w", startPage, endPage, err)
+		}
+
+		outFile := outputFileName(outDir, basename, i+1)
+		if err := api.WriteContextFile(extracted, outFile); err != nil {
+			return nil, fmt.Errorf("failed to write %s: %w", outFile, err)
+		}
+
+		outFiles = append(outFiles, outFile)
+	}
+
+	return outFiles, nil
+}
+
 func readContext(f *os.File) (*model.Context, error) {
 	if _, err := f.Seek(0, io.SeekStart); err != nil {
 		return nil, fmt.Errorf("failed to seek: %w", err)

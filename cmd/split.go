@@ -5,11 +5,13 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/wadoyoka/nigopdf/internal/pageutil"
 	"github.com/wadoyoka/nigopdf/internal/splitter"
 )
 
 var splitParts int
 var splitMaxSize string
+var splitPages string
 var splitOutput string
 
 var splitCmd = &cobra.Command{
@@ -19,12 +21,24 @@ var splitCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		partsSet := cmd.Flags().Changed("parts")
 		maxSizeSet := cmd.Flags().Changed("max-size")
+		pagesSet := cmd.Flags().Changed("pages")
 
-		if partsSet && maxSizeSet {
-			return fmt.Errorf("--parts and --max-size are mutually exclusive")
+		setCount := 0
+		if partsSet {
+			setCount++
 		}
-		if !partsSet && !maxSizeSet {
-			return fmt.Errorf("specify either --parts or --max-size")
+		if maxSizeSet {
+			setCount++
+		}
+		if pagesSet {
+			setCount++
+		}
+
+		if setCount > 1 {
+			return fmt.Errorf("--parts, --max-size, and --pages are mutually exclusive")
+		}
+		if setCount == 0 {
+			return fmt.Errorf("specify one of --parts, --max-size, or --pages")
 		}
 
 		inFile := args[0]
@@ -32,6 +46,22 @@ var splitCmd = &cobra.Command{
 		outDir := splitOutput
 		if outDir == "" {
 			outDir = filepath.Dir(inFile)
+		}
+
+		if pagesSet {
+			pages, err := pageutil.ParsePages(splitPages)
+			if err != nil {
+				return err
+			}
+			files, err := splitter.SplitByPages(inFile, outDir, pages)
+			if err != nil {
+				return err
+			}
+			for _, f := range files {
+				fmt.Println(f)
+			}
+			fmt.Printf("Split into %d parts\n", len(files))
+			return nil
 		}
 
 		if partsSet {
@@ -68,6 +98,7 @@ var splitCmd = &cobra.Command{
 func init() {
 	splitCmd.Flags().IntVar(&splitParts, "parts", 0, "number of parts to split into")
 	splitCmd.Flags().StringVar(&splitMaxSize, "max-size", "", "maximum size per part (e.g. 10MB, 500KB)")
+	splitCmd.Flags().StringVar(&splitPages, "pages", "", "page boundaries to split at (e.g. 2,5,8)")
 	splitCmd.Flags().StringVarP(&splitOutput, "output", "o", "", "output directory (default: same as input file)")
 	rootCmd.AddCommand(splitCmd)
 }
